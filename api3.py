@@ -1,33 +1,49 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect
+import sqlite3
+
 app = Flask(__name__)
 
-alunos=[{
-    'nome':'Gabriel',
-    'idade':26,
-    'telefone':'12312312'
-},
-{
-    'nome':'fernando',
-    'idade':12,
-    'telefone':'2312322'
-}
-]
+# Função que cria o banco se não existir
+def init_db():
+    conn = sqlite3.connect('alunos.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS alunos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            idade INTEGER NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
-# caminho a ser seguido pelo ususario
+init_db()
+
+# Página inicial - lista de alunos
 @app.route('/')
 def index():
-    return render_template('register.html',alunos=alunos)
+    conn = sqlite3.connect('alunos.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM alunos')
+    alunos = cursor.fetchall()
+    conn.close()
+    return render_template('index.html', alunos=alunos)
 
-@app.route('/adicionar',methods=['POST'])
-def adicioar():
-    nome = request.form['nome']
-    idade = request.form['idade']
-  
- 
-    alunos.append( {'nome':nome,'idade':idade})
-    return redirect(url_for('index'))
+# Cadastro de aluno
+@app.route('/cadastro', methods=['GET', 'POST'])
+def cadastro():
+    if request.method == 'POST':
+        nome = request.form['nome']
+        idade = request.form['idade']
+
+        conn = sqlite3.connect('alunos.db')
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO alunos (nome, idade) VALUES (?, ?)', (nome, idade))
+        conn.commit()
+        conn.close()
+        return redirect('/')
+    return render_template('cadastro.html')
 
 
-
-
-app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
